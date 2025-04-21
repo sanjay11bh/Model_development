@@ -6,3 +6,7 @@ ipykernel
 seaborn 
 streamlit
 bayesian-optimization
+optuna
+plotly.express
+spc_spectra
+ openpyxl

@@ -96,7 +96,6 @@ class Models:
         f1 = f1_score(Y, self.predictions, average="weighted")
         return self.model, self.predictions, acc, f1
     
-    
     def random_forest_regression(self, X , Y):
         n_estimators =  100 
         max_depth =  None
