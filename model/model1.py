@@ -30,7 +30,7 @@ class ReadingData:
             data = file.read()
         return data
 
-    def train_test_split_data(self, data, test_size=0.2, random_state=42):
+    def train_test_split_data(self, data, test_size=0.3, random_state=42):
         if isinstance(data, pd.DataFrame):
             X = data.drop('target_column', axis=1) 
             y = data['target_column'] 
