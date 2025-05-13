@@ -10,3 +10,4 @@ optuna
 plotly.express
 spc_spectra
 openpyxl
+ flask

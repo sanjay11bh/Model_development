@@ -11,7 +11,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.ensemble import (
     RandomForestRegressor, RandomForestClassifier,
-    GradientBoostingClassifier, GradientBoostingRegressor
+    GradientBoostingClassifier, GradientBoostingRegressor , 
+    AdaBoostClassifier , AdaBoostRegressor 
 )
 
 
@@ -162,7 +163,7 @@ class Models:
         self.model.fit(X, Y)
         self.predictions = self.model.predict(X)
         return self.evaluate_classification(X, Y)
-
+## check if this is correct
     def gradient_boosting_regressor(self, X, Y, use_optuna=False):
         if use_optuna:
             def objective(trial):
@@ -206,3 +207,49 @@ class Models:
         self.model.fit(X, Y)
         self.predictions = self.model.predict(X)
         return self.evaluate_classification(X, Y)
+    
+    def adaboost_classifier(self, X, Y, use_optuna=False):
+        if use_optuna:
+            def objective(trial):
+                model = AdaBoostClassifier(
+                    n_estimators=trial.suggest_int("n_estimators", 50, 200),
+                    learning_rate=trial.suggest_float("learning_rate", 0.01, 0.3),
+                    random_state=42
+                )
+                model.fit(X, Y)
+                return -accuracy_score(Y, model.predict(X))
+
+            study = optuna.create_study(direction="minimize")
+            study.optimize(objective, n_trials=20)
+            self.model = AdaBoostClassifier(**study.best_params, random_state=42)
+        else:
+            self.model = AdaBoostClassifier(random_state=42)
+
+        self.model.fit(X, Y)
+        self.predictions = self.model.predict(X)
+        return self.evaluate_classification(X, Y)
+    
+    def adaboost_regressor(self, X, Y, use_optuna=False):
+        if use_optuna:
+            def objective(trial):
+                model = AdaBoostRegressor(
+                    n_estimators=trial.suggest_int("n_estimators", 50, 200),
+                    learning_rate=trial.suggest_float("learning_rate", 0.01, 0.3),
+                    random_state=42
+                )
+                model.fit(X, Y)
+                return mean_squared_error(Y, model.predict(X))
+
+            study = optuna.create_study(direction="minimize")
+            study.optimize(objective, n_trials=20)
+            self.model = AdaBoostRegressor(**study.best_params, random_state=42)
+        else:
+            self.model = AdaBoostRegressor(random_state=42)
+
+        self.model.fit(X, Y)
+        self.predictions = self.model.predict(X)
+        return self.evaluate_regression(X, Y)
+
+
+
+    

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train Your Model</title>
+</head>
+<body>
+    <h1>Train Your Model</h1>
+    <form action="/train" method="post" enctype="multipart/form-data">
+        <label for="model_type">Model Type:</label>
+        <select name="model_type" id="model_type">
+            <option value="decision_tree">Decision Tree</option>
+            <!-- Add other models as needed -->
+        </select><br><br>
+
+        <label for="task_type">Task Type:</label>
+        <select name="task_type" id="task_type">
+            <option value="classification">Classification</option>
+            <option value="regression">Regression</option>
+        </select><br><br>
+
+        <label for="use_optuna">Use Optuna for Hyperparameter Tuning:</label>
+        <input type="checkbox" name="use_optuna" id="use_optuna"><br><br>
+
+        <label for="dataset">Upload Dataset (CSV):</label>
+        <input type="file" name="dataset" id="dataset" accept=".csv" required><br><br>
+
+        <button type="submit">Train Model</button>
+    </form>
+</body>
+</html>
