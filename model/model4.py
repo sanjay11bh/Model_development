@@ -14,6 +14,8 @@ from sklearn.ensemble import (
     GradientBoostingClassifier, GradientBoostingRegressor , 
     AdaBoostClassifier , AdaBoostRegressor 
 )
+from sklearn.multioutput import MultiOutputRegressor , MultiOutputClassifier
+import pickle
 
 
 class ReadingData:
@@ -58,7 +60,7 @@ class Models:
         return self.model, self.predictions, acc, f1
 
     def Linear_regressor(self, X, Y):
-        self.model = LinearRegression()
+        self.model = MultiOutputRegressor(LinearRegression())
         self.model.fit(X, Y)
         self.predictions = self.model.predict(X)
         return self.evaluate_regression(X, Y)
@@ -180,6 +182,24 @@ class Models:
         self.model.fit(X, Y)
         self.predictions = self.model.predict(X)
         return self.evaluate_regression(X, Y)
+    
+    def predict_and_save(self, model, test_df, file_name="predictions.pkl"):
+        """Predict on an unseen dataframe and pickle the results.
+        Returns (result_df, file_path)."""
+        preds = model.predict(test_df)
+
+        # Attach predictions column(s)
+        result_df = test_df.copy()
+        if preds.ndim == 1:
+            result_df["Predictions"] = preds
+        else:
+            for i in range(preds.shape[1]):
+                result_df[f"Pred_{i}"] = preds[:, i]
+
+        with open(file_name, "wb") as f:
+            pickle.dump(result_df, f)
+
+        return result_df, file_name
 
   
 class optuna_Model:
@@ -228,7 +248,7 @@ class optuna_Model:
             return mean_squared_error(Y, model.predict(X))
 
         study = optuna.create_study(direction="minimize")
-        study.optimize(objective, n_trials=20)
+        study.optimize(objective, n_trials=5)
         self.model = DecisionTreeRegressor(**study.best_params)
 
         self.model.fit(X, Y)
@@ -246,7 +266,7 @@ class optuna_Model:
             return -accuracy_score(Y, model.predict(X))
 
         study = optuna.create_study(direction="minimize")
-        study.optimize(objective, n_trials=20)
+        study.optimize(objective, n_trials=5)
         self.model = DecisionTreeClassifier(**study.best_params)
 
         self.model.fit(X, Y)
@@ -267,7 +287,7 @@ class optuna_Model:
             return mean_squared_error(Y, model.predict(X))
 
         study = optuna.create_study(direction="minimize")
-        study.optimize(objective, n_trials=20)
+        study.optimize(objective, n_trials=5)
         self.model = RandomForestRegressor(**study.best_params, random_state=42)
         self.model.fit(X, Y)
         self.predictions = self.model.predict(X)
@@ -287,7 +307,7 @@ class optuna_Model:
             return -accuracy_score(Y, model.predict(X))
 
         study = optuna.create_study(direction="minimize")
-        study.optimize(objective, n_trials=20)
+        study.optimize(objective, n_trials=5)
         self.model = RandomForestClassifier(**study.best_params, random_state=42)
 
         self.model.fit(X, Y)
@@ -296,23 +316,23 @@ class optuna_Model:
 
     def gradient_boosting_regressor(self, X, Y, use_optuna=False):
         def objective(trial):
-            model = GradientBoostingRegressor(
+            model = MultiOutputRegressor(GradientBoostingRegressor(
                 n_estimators=trial.suggest_int("n_estimators", 50, 200),
                 learning_rate=trial.suggest_float("learning_rate", 0.01, 0.3),
                 max_depth=trial.suggest_int("max_depth", 2, 10),
                 random_state=42
-            )
+            ))
             model.fit(X, Y)
             return mean_squared_error(Y, model.predict(X))
 
         study = optuna.create_study(direction="minimize")
-        study.optimize(objective, n_trials=20)
-        self.model = GradientBoostingRegressor(**study.best_params, random_state=42)
+        study.optimize(objective, n_trials=5)
+        self.model = MultiOutputRegressor(GradientBoostingRegressor(**study.best_params, random_state=42))
 
         self.model.fit(X, Y)
         self.predictions = self.model.predict(X)
         return self.evaluate_regression(X, Y)
-
+        
     def gradient_boosting_classifier(self, X, Y):
         def objective(trial):
             model = GradientBoostingClassifier(
@@ -325,11 +345,13 @@ class optuna_Model:
             return -accuracy_score(Y, model.predict(X))
 
         study = optuna.create_study(direction="minimize")
-        study.optimize(objective, n_trials=20)
+        study.optimize(objective, n_trials=5)
 
+        self.model = GradientBoostingClassifier(**study.best_params, random_state=42)
         self.model.fit(X, Y)
         self.predictions = self.model.predict(X)
         return self.evaluate_classification(X, Y)
+
     
     def adaboost_classifier(self, X, Y):
         def objective(trial):
@@ -350,22 +372,102 @@ class optuna_Model:
     
     def adaboost_regressor(self, X, Y):
         def objective(trial):
-            model = AdaBoostRegressor(
+            model = MultiOutputRegressor(AdaBoostRegressor(
                 n_estimators=trial.suggest_int("n_estimators", 50, 200),
                 learning_rate=trial.suggest_float("learning_rate", 0.01, 0.3),
                 random_state=42
-            )
+            ))
             model.fit(X, Y)
             return mean_squared_error(Y, model.predict(X))
 
         study = optuna.create_study(direction="minimize")
-        study.optimize(objective, n_trials=20)
-        self.model = AdaBoostRegressor(**study.best_params, random_state=42)
-
+        study.optimize(objective, n_trials=5)
+        self.model = MultiOutputRegressor(AdaBoostRegressor(**study.best_params, random_state=42))
+        optuna.visualization.plot_optimization_history(study)
         self.model.fit(X, Y)
         self.predictions = self.model.predict(X)
-        return self.evaluate_regression(X, Y)
-
-
-
+        return self.evaluate_regression(X, Y) 
     
+    def predict_and_save(self, model, test_df, file_name="predictions.pkl"):
+        """Predict on an unseen dataframe and pickle the results.
+        Returns (result_df, file_path)."""
+        preds = model.predict(test_df)
+
+        # Attach predictions column(s)
+        result_df = test_df.copy()
+        if preds.ndim == 1:
+            result_df["Predictions"] = preds
+        else:
+            for i in range(preds.shape[1]):
+                result_df[f"Pred_{i}"] = preds[:, i]
+
+        with open(file_name, "wb") as f:
+            pickle.dump(result_df, f)
+
+        return result_df, file_name
+    
+
+
+
+
+# Automated_running:
+class AutoModelSelector:
+    def __init__(self, task="regression"):
+        self.task = task
+        self.model_class = optuna_Model()
+        self.best_model_name = None
+        self.best_score = -np.inf
+        self.best_model = None
+        self.all_models_scores = []  # ← NEW
+
+    def select_best_model(self, X, Y):
+        self.all_models_scores = []  # Reset before each run
+
+        model_methods = {
+            "regression": {
+                "linear_regressor": self.model_class.linear_regressor,
+                "lasso_regression": self.model_class.lasso_regression,
+                "decision_tree_regression": self.model_class.decision_tree_regression,
+                "random_forest_regression": self.model_class.random_forest_regression,
+                "gradient_boosting_regressor": self.model_class.gradient_boosting_regressor,
+                "adaboost_regressor": self.model_class.adaboost_regressor,
+            },
+            "classification": {
+                "logistic_regression": self.model_class.logistic_regression,
+                "decision_tree_classifier": self.model_class.decision_tree_classifier,
+                "random_forest_classifier": self.model_class.random_forest_classifier,
+                "gradient_boosting_classifier": self.model_class.gradient_boosting_classifier,
+                "adaboost_classifier": self.model_class.adaboost_classifier,
+            }
+        }
+
+        for name, method in model_methods[self.task].items():
+            try:
+                print(f"Training {name}...")
+                result = method(X, Y)
+                score = result[2] if self.task == "regression" else result[3]
+
+                self.all_models_scores.append((name, score))  # ← Store all
+
+                if score > self.best_score:
+                    self.best_score = score
+                    self.best_model_name = name
+                    self.best_model = result[0]
+            except Exception as e:
+                print(f"{name} failed: {e}")
+                self.all_models_scores.append((name, f"Failed: {e}"))  # ← Even failed ones
+                continue
+
+        return self.best_model_name, self.best_model, self.best_score
+    
+    def run_regression(self, X, y):
+        self.task = "regression"
+        return self.select_best_model(X, y)  
+
+    def run_classification(self, X, y):
+        self.task = "classification"
+        return self.select_best_model(X, y)  
+    
+
+
+
